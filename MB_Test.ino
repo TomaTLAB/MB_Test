@@ -1,14 +1,16 @@
 /*
   Based on Modbus-Arduino Library by André Sarmento Barbosa http://github.com/andresarmento/modbus-arduino
 */
-
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#define ONE_WIRE_BUS 2 
-// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
-OneWire oneWire(ONE_WIRE_BUS);
-// Pass our oneWire reference to Dallas Temperature. 
-DallasTemperature sensors(&oneWire);
+OneWire oneWire(A5); // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+DallasTemperature sensors(&oneWire); // Pass our oneWire reference to Dallas Temperature. 
+
+DeviceAddress tempDeviceAddress;
+
+#define  T_RESOL 12
+#define  delayInMillis 750 / (1 << (12 - T_RESOL))
+unsigned long lastTempRequest = 0;
 
 #include <Modbus.h>
 
@@ -21,11 +23,9 @@ DallasTemperature sensors(&oneWire);
 #include <EtherCard.h>
 #include <ModbusIP_ENC28J60.h>
 
-//#include <ModbusSerial.h>
-
-
-//ModbusIP object
 ModbusIP mb;
+
+//#include <ModbusSerial.h>
 //ModbusSerial mb;
 
 void setup() {
@@ -48,47 +48,69 @@ void setup() {
     mb.addCoil(DPin);
     mb.addIsts(DPin);
     mb.addIreg(DPin);
-    mb.addIreg(DPin + 4);
+//    mb.addIreg(DPin + 4);
     pinMode(DPin + 2, OUTPUT);
     pinMode(DPin + 6, INPUT_PULLUP);
   }
-    pinMode(13, OUTPUT);
+  pinMode(13, OUTPUT);
 
-    mb.addCoil(13);
+  mb.addCoil(13);
+  mb.addIreg(4);
 
-    mb.addHreg(0, 12345);
-    mb.addHreg(1, 54321);
-    mb.addHreg(2, 0xAAAA);
-    mb.addHreg(3, 0xBBBB);
-    mb.addHreg(4, 0xCCCC);
-    mb.addHreg(5, 0xDDDD);
-    mb.addHreg(6, 0xEEEE);
-    mb.addHreg(7, 0xFFFF);
+  mb.addHreg(0, 12345);
+  mb.addHreg(1, 54321);
+  mb.addHreg(2, 0xAAAA);
+  mb.addHreg(3, 0xBBBB);
+  mb.addHreg(4, 0xCCCC);
+  mb.addHreg(5, 0xDDDD);
+  mb.addHreg(6, 0xEEEE);
+  mb.addHreg(7, 0xFFFF);
+
+//  Serial.begin(115200);
+ 
+//  sensors.begin();
+//  if (!sensors.getAddress(tempDeviceAddress, 0))
+//  {
+//    Serial.print("No sensor");
+//    while (1); 
+//  }
+  //Temperature sens setup
+  sensors.getAddress(tempDeviceAddress, 0);
+  sensors.setResolution(tempDeviceAddress, T_RESOL);
+  sensors.setWaitForConversion(false);
+  sensors.requestTemperatures();
+  lastTempRequest = millis(); 
 
 }
 
-void loop() 
-{
-   //Call once inside loop() - all magic here
-   mb.task();
+void loop() {
 
-   if (mb.Ireg(0) < 10)
-   {
-     mb.Coil(0, false);
-     mb.Coil(13, false);
-   }
-   if (mb.Ireg(0) > 1010)
-   {
-     mb.Coil(0, true);
-     mb.Coil(13, true);
-   }
+  mb.task();   //Call once inside loop() - all magic here
 
-  for (byte APin = 0; APin < 7; APin++) 
+  if (millis() - lastTempRequest >= delayInMillis) // waited long enough??
   {
-    mb.Ireg(APin, analogRead(APin));
+    int32_t rawTemp = sensors.getTemp(tempDeviceAddress); //~13ms
+    sensors.requestTemperatures(); //~2ms
+    lastTempRequest = millis(); 
+    //rawTemp = (rawTemp * 1000) / 12800;
+    mb.Ireg(4, (rawTemp * 1000) / 12800); // contains measured temperature*10 (DP shift)
   }
+
+
+  if (mb.Ireg(0) < 10)
+  {
+    mb.Coil(0, false);
+    mb.Coil(13, false);
+  }
+    if (mb.Ireg(0) > 1010)
+  {
+    mb.Coil(0, true);
+    mb.Coil(13, true);
+  }
+
   for (byte DPin = 0; DPin < 4; DPin++) 
   {
+    mb.Ireg(DPin, analogRead(DPin));
     mb.Ists(DPin, digitalRead(DPin + 6));
    digitalWrite(DPin + 2, mb.Coil(DPin));
   }

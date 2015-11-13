@@ -2,17 +2,24 @@
   Based on Modbus-Arduino Library by André Sarmento Barbosa http://github.com/andresarmento/modbus-arduino
 */
 
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define ONE_WIRE_BUS 2 
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+// Pass our oneWire reference to Dallas Temperature. 
+DallasTemperature sensors(&oneWire);
 
 #include <Modbus.h>
 
-#define WIZ
-#include <SPI.h>
-#include <Ethernet.h>
-#include <ModbusIP.h>
+//#define WIZ
+//#include <SPI.h>
+//#include <Ethernet.h>
+//#include <ModbusIP.h>
 
-//#define ENC
-//#include <EtherCard.h>
-//#include <ModbusIP_ENC28J60.h>
+#define ENC
+#include <EtherCard.h>
+#include <ModbusIP_ENC28J60.h>
 
 //#include <ModbusSerial.h>
 
@@ -76,7 +83,7 @@ void loop()
      mb.Coil(13, true);
    }
 
-  for (byte APin = 0; APin < 8; APin++) 
+  for (byte APin = 0; APin < 7; APin++) 
   {
     mb.Ireg(APin, analogRead(APin));
   }

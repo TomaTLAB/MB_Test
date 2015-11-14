@@ -56,9 +56,10 @@ void setup() {
 
   mb.addCoil(13);
   mb.addIreg(4);
+  mb.addIreg(5);
 
-  mb.addHreg(0, 12345);
-  mb.addHreg(1, 54321);
+  mb.addHreg(0, -10);
+  mb.addHreg(1, 10);
   mb.addHreg(2, 0xAAAA);
   mb.addHreg(3, 0xBBBB);
   mb.addHreg(4, 0xCCCC);
@@ -92,19 +93,29 @@ void loop() {
     int32_t rawTemp = sensors.getTemp(tempDeviceAddress); //~13ms
     sensors.requestTemperatures(); //~2ms
     lastTempRequest = millis(); 
-    //rawTemp = (rawTemp * 1000) / 12800;
-    mb.Ireg(4, (rawTemp * 1000) / 12800); // contains measured temperature*10 (DP shift)
+    rawTemp = (rawTemp * 1000) / 12800;
+    mb.Ireg(4, rawTemp); // contains measured temperature*10 (DP shift)
+
+    //simple threshold type thermo-regulator 
+    //Hreg(0) - On SetPoint, Hreg(1) - Off SetPoint 
+    if ((int)mb.Ireg(4) < (int)mb.Hreg(0))
+    {
+      mb.Coil(0, true);
+    }
+    if ((int)mb.Ireg(4) > (int)mb.Hreg(1))
+    {
+      mb.Coil(0, false);
+    }    
+
   }
 
 
   if (mb.Ireg(0) < 10)
   {
-    mb.Coil(0, false);
     mb.Coil(13, false);
   }
-    if (mb.Ireg(0) > 1010)
+  if (mb.Ireg(0) > 1010)
   {
-    mb.Coil(0, true);
     mb.Coil(13, true);
   }
 

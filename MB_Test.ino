@@ -1,6 +1,10 @@
 /*
   Based on Modbus-Arduino Library by André Sarmento Barbosa http://github.com/andresarmento/modbus-arduino
 */
+#include <EEPROM.h>
+#define EE_THRS_L  0
+#define EE_THRS_H  2
+
 #include <OneWire.h>
 #include <DallasTemperature.h>
 OneWire oneWire(A5); // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
@@ -52,14 +56,19 @@ void setup() {
     pinMode(DPin + 2, OUTPUT);
     pinMode(DPin + 6, INPUT_PULLUP);
   }
-  pinMode(13, OUTPUT);
+  //pinMode(13, OUTPUT);
 
   mb.addCoil(13);
   mb.addIreg(4);
   mb.addIreg(5);
 
-  mb.addHreg(0, -10);
-  mb.addHreg(1, 10);
+  word tmpreg;
+
+  EEPROM.get(EE_THRS_L, tmpreg);
+  mb.addHreg(0, tmpreg);
+  EEPROM.get(EE_THRS_H, tmpreg);
+  mb.addHreg(1, tmpreg);
+
   mb.addHreg(2, 0xAAAA);
   mb.addHreg(3, 0xBBBB);
   mb.addHreg(4, 0xCCCC);
@@ -112,11 +121,11 @@ void loop() {
 
   if (mb.Ireg(0) < 10)
   {
-    mb.Coil(13, false);
+    mb.Coil(1, false);
   }
   if (mb.Ireg(0) > 1010)
   {
-    mb.Coil(13, true);
+    mb.Coil(1, true);
   }
 
   for (byte DPin = 0; DPin < 4; DPin++) 
@@ -125,7 +134,12 @@ void loop() {
     mb.Ists(DPin, digitalRead(DPin + 6));
    digitalWrite(DPin + 2, mb.Coil(DPin));
   }
-#ifdef WIZ
-   digitalWrite(13, mb.Coil(13));
-#endif
+
+  if (mb.Coil (13))
+  {
+    EEPROM.put(EE_THRS_L, mb.Hreg(0));
+    EEPROM.put(EE_THRS_H, mb.Hreg(1));
+    mb.Coil (13, false);
+  }
+
 }

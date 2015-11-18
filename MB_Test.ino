@@ -5,14 +5,14 @@
 
 #include <Modbus.h>
 
-#define WIZ
-#include <SPI.h>
-#include <Ethernet.h>
-#include <ModbusIP.h>
+//#define WIZ
+//#include <SPI.h>
+//#include <Ethernet.h>
+//#include <ModbusIP.h>
 
-//#define ENC
-//#include <EtherCard.h>
-//#include <ModbusIP_ENC28J60.h>
+#define ENC
+#include <EtherCard.h>
+#include <ModbusIP_ENC28J60.h>
 
 //#include <ModbusSerial.h>
 
@@ -33,6 +33,7 @@ void setup() {
 //    mb.config(&Serial, 38400, SERIAL_8N1);
     // Set the Slave ID (1-247)
 //    mb.setSlaveId(10);  
+  Serial.begin(115200);
 
 
     //Set Pin mode
@@ -62,9 +63,11 @@ void setup() {
 
 void loop() 
 {
-   //Call once inside loop() - all magic here
+   digitalWrite(2, true);
+  //Call once inside loop() - all magic here
    mb.task();
-
+   digitalWrite(2, false);
+   
    if (mb.Ireg(0) < 10)
    {
      mb.Coil(0, false);

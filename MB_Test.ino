@@ -6,13 +6,13 @@
 #include <Modbus.h>
 
 //#define WIZ
-//#include <SPI.h>
+#include <SPI.h>
 //#include <Ethernet.h>
 //#include <ModbusIP.h>
 
 #define ENC
-#include <EtherCard.h>
-#include <ModbusIP_ENC28J60.h>
+#include <EtherCard_STM.h>
+#include <ModbusIP_ENC28J60.h> // correct this for STM
 
 //#include <ModbusSerial.h>
 
@@ -33,7 +33,7 @@ void setup() {
 //    mb.config(&Serial, 38400, SERIAL_8N1);
     // Set the Slave ID (1-247)
 //    mb.setSlaveId(10);  
-  Serial.begin(115200);
+//  Serial.begin(115200);
 
 
     //Set Pin mode
@@ -43,10 +43,10 @@ void setup() {
     mb.addIsts(DPin);
     mb.addIreg(DPin);
     mb.addIreg(DPin + 4);
-    pinMode(DPin + 2, OUTPUT);
-    pinMode(DPin + 6, INPUT_PULLUP);
+    pinMode(DPin + 15, OUTPUT);
+    pinMode(DPin + 19, INPUT_PULLUP);
   }
-    pinMode(13, OUTPUT);
+    pinMode(33, OUTPUT);
 
     mb.addCoil(13);
 
@@ -63,10 +63,10 @@ void setup() {
 
 void loop() 
 {
-   digitalWrite(2, true);
+   //digitalWrite(2, true);
   //Call once inside loop() - all magic here
    mb.task();
-   digitalWrite(2, false);
+   //digitalWrite(2, false);
    
    if (mb.Ireg(0) < 10)
    {
@@ -81,14 +81,12 @@ void loop()
 
   for (byte APin = 0; APin < 8; APin++) 
   {
-    mb.Ireg(APin, analogRead(APin));
+    mb.Ireg(APin, analogRead(7));
   }
   for (byte DPin = 0; DPin < 4; DPin++) 
   {
-    mb.Ists(DPin, digitalRead(DPin + 6));
-   digitalWrite(DPin + 2, mb.Coil(DPin));
+    mb.Ists(DPin, digitalRead(DPin + 19));
+   digitalWrite(DPin + 15, mb.Coil(DPin));
   }
-#ifdef WIZ
-   digitalWrite(13, mb.Coil(13));
-#endif
+   digitalWrite(33, mb.Coil(13));
 }
